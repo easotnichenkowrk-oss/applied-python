@@ -18,8 +18,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter, CommandStart
 
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN не найден!")
 
-BOT_TOKEN = "8592852639:AAGO-BsnaUxz8LIGLPZFTqN0X0xzuXqobcE"
+bot = Bot(BOT_TOKEN)
 
 
 sys.stdout.reconfigure(line_buffering=True)
