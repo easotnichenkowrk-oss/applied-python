@@ -810,6 +810,7 @@ async def main():
 
 if __name__ == "__main__":
     try:
+        threading.Thread(target=run_web, daemon=True).start()
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logging.info("Bot stopped.")
