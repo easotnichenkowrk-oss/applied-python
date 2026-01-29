@@ -154,13 +154,12 @@ class FoodAPI:
         # Добавляем фильтр по полям, чтобы ускорить ответ
         url = f"https://world.openfoodfacts.org/cgi/search.pl?search_terms={query}&search_simple=1&action=process&json=1&fields=product_name,nutriments"
         try:
-            resp = requests.get(url, headers=headers, timeout=5).json()
+            resp = requests.get(url, headers=headers, timeout=15).json()
             products = resp.get('products', [])
             
             if products:
                 for p in products:
                     nutr = p.get('nutriments', {})
-                    # Проверяем все возможные ключи калорий
                     kcal = nutr.get('energy-kcal_100g') or nutr.get('energy-kcal_value') or nutr.get('energy-kcal')
                     
                     if kcal:
@@ -218,7 +217,6 @@ def initialize_exercise_db():
         df = pd.read_csv(excercise_dataset)
         target_col = 'Activity, Exercise or Sport (1 hour)'
         if target_col in df.columns:
-            # Очищаем данные от пустых строк и приводим к нижнему регистру для поиска
             df = df.dropna(subset=[target_col])
             df['search_index'] = df[target_col].str.lower()
         return df
@@ -250,11 +248,11 @@ def retrieve_user_data():
 retrieve_user_data()
 
 
-PROFILE_HINTS = {"weight": "⚖ <b>Вес (кг)</b>\nВведите число, например: <i>72.5</i>",
-    "height": "📏 <b>Рост (см)</b>\nВведите целое число, например: <i>175</i>",
-    "age": "🎂 <b>Возраст</b>\nВведите полных лет, например: <i>30</i>",
-    "city": "🌍 <b>Город</b>\nНужен для учета водного баланса (англ., только буквы).",
-    "gender": "⚧ <b>Пол</b>\nВлияет на формулу калорий."}
+PROFILE_HINTS = {"weight": "⚖ <b>Вес (кг)</b>\nВведи целое число, например: <i>70</i>",
+    "height": "📏 <b>Рост (см)</b>\nВведи целое число, например: <i>175</i>",
+    "age": "🎂 <b>Возраст</b>\nВведи полные года, например: <i>30</i>",
+    "city": "🌍 <b>Город</b>\nНужен для учета водного баланса (англ., только буквы)",
+    "gender": "⚧ <b>Пол</b>\nВлияет на формулу нормы калорий"}
 
 async def derive_daily_metrics(uid):
     user_key = str(uid)
@@ -264,7 +262,7 @@ async def derive_daily_metrics(uid):
     h = profile.get("height", 170)
     a = profile.get("age", 25)
     g = profile.get("gender", "Male")
-    goal = profile.get("goal", "keep") # По умолчанию — поддержка
+    goal = profile.get("goal", "keep")
     city = profile.get("city", "Moscow")
     
     # Расчет BMR
@@ -329,7 +327,7 @@ async def refresh_profile_ui(message: Message, user_id: str):
 @dp.message(CommandStart())
 async def cmd_launch(message: Message):
     await message.answer(
-        "👋 Привет! Я бот для фитнеса.\nЗаполни раздел 'Обо мне', чтобы получить расчеты.",
+        "👋 Привет! Я твой трекер здоровья..\nЗаполни раздел 'Обо мне', чтобы получить рассчеты.",
         reply_markup=start_kb()
     )
 
@@ -354,9 +352,12 @@ async def profile_setup_start(cb: CallbackQuery):
 @dp.callback_query(F.data == "back_to_menu")
 async def navigate_main(cb: CallbackQuery, state: FSMContext):
     await state.clear()
-    await cb.message.edit_text("🏠 Главное меню:", reply_markup=main_menu())
+    await cb.message.edit_text("🏠 Главное меню:\n Для возвращения в это меню ты всегда можешь использовать команду \\main_menu", reply_markup=main_menu())
 
-# --- PROFILE EDITING ---
+@dp.message(Command(commands=["main_menu"]))
+async def cmd_main_menu(message: Message):
+    await message.answer("🏠 Главное меню:\n Для возвращения в это меню ты всегда можешь использовать команду \\main_menu", reply_markup=main_menu())
+
 @dp.callback_query(F.data.startswith("edit_"))
 async def profile_edit_trigger(cb: CallbackQuery, state: FSMContext):
     field_key = cb.data.split("_")[1]
@@ -371,7 +372,7 @@ async def profile_edit_trigger(cb: CallbackQuery, state: FSMContext):
             "age": ProfileForm.age, "city": ProfileForm.city
         }
         await state.set_state(mapper.get(field_key))
-        prompt_msg = await cb.message.answer(PROFILE_HINTS.get(field_key, "Введите значение:"), parse_mode="HTML")
+        prompt_msg = await cb.message.answer(PROFILE_HINTS.get(field_key, "Введи значение:"), parse_mode="HTML")
         await state.update_data(prompt_id=prompt_msg.message_id)
 
 @dp.callback_query(StateFilter(ProfileForm.gender), F.data.startswith("gender_"))
@@ -407,7 +408,7 @@ async def profile_store_value(msg: Message, state: FSMContext):
             if not raw_text.replace("-", "").isalpha(): raise ValueError
             user_db[uid][field] = raw_text.title()
     except ValueError:
-        await msg.answer("❌ Ошибка формата.")
+        await msg.answer("❌ Ошибка формата")
         return
 
     persist_user_data()
@@ -427,24 +428,24 @@ async def profile_finalize(cb: CallbackQuery):
 # --- WORKOUTS ---
 @dp.callback_query(F.data == "menu_workout")
 async def fitness_hub(cb: CallbackQuery):
-    await cb.message.edit_text("💪 <b>Тренировки</b>\nВыберите действие:", reply_markup=workout_menu(), parse_mode="HTML")
+    await cb.message.edit_text("💪 <b>Тренировки</b>\nВыбери действие:", reply_markup=workout_menu(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "workout_start")
 async def fitness_query_init(cb: CallbackQuery, state: FSMContext):
-    await cb.message.edit_text("🔍 Введите активность (на англ, например <i>Running</i>):", parse_mode="HTML")
+    await cb.message.edit_text("🔍 Введи активность (на англ, например <i>Running</i>):", parse_mode="HTML")
     await state.set_state(WorkoutForm.search_query)
 
 @dp.message(StateFilter(WorkoutForm.search_query))
 async def fitness_query_handler(msg: Message, state: FSMContext):
     q = msg.text.lower().strip()
     if exercise_data.empty:
-        await msg.answer("⚠️ База упражнений пуста.")
+        await msg.answer("⚠️ База упражнений пуста")
         await state.clear()
         return
     
     found = exercise_data[exercise_data['search_index'].str.contains(q, na=False)]
     if found.empty:
-        await msg.answer("❌ Не найдено.")
+        await msg.answer("❌ Не найдено")
         return
 
     candidates = []
@@ -454,7 +455,7 @@ async def fitness_query_handler(msg: Message, state: FSMContext):
     if len(candidates) == 1:
         await trigger_duration_input(msg, state, candidates[0][0])
     else:
-        await msg.answer("👇 Уточните:", reply_markup=workout_select_kb(candidates))
+        await msg.answer("👇 Уточни:", reply_markup=workout_select_kb(candidates))
         await state.set_state(WorkoutForm.select_type)
 
 @dp.callback_query(StateFilter(WorkoutForm.select_type), F.data.startswith("sel_work_"))
@@ -479,7 +480,7 @@ async def fitness_log_session(msg: Message, state: FSMContext):
         mins = int(msg.text)
         if mins <= 0: raise ValueError
     except:
-        await msg.answer("❌ Введите число > 0.")
+        await msg.answer("❌ Введи число > 0")
         return
     
     data = await state.get_data()
@@ -508,13 +509,12 @@ async def hydration_hub(cb: CallbackQuery):
 @dp.callback_query(F.data == "water_add_250")
 async def hydration_quick_add(cb: CallbackQuery):
     save_water(cb.from_user.id, 250)
-    # Обновляем текст, чтобы пользователь видел прогресс
     await cb.answer("Добавлено 250 мл!")
     await cb.message.edit_text("✅ Добавлено 250 мл.", reply_markup=water_menu_kb())
 
 @dp.callback_query(F.data == "water_add")
 async def hydration_add_prompt(cb: CallbackQuery, state: FSMContext):
-    await cb.message.answer("💧 Введите мл:")
+    await cb.message.answer("💧 Введи мл:")
     await state.set_state(WaterForm.water_amount)
 
 @dp.message(StateFilter(WaterForm.water_amount))
@@ -565,7 +565,7 @@ async def nutrition_search_handler(msg: Message, state: FSMContext):
 
 @dp.callback_query(F.data == "food_by_barcode")
 async def nutrition_barcode_manual(cb: CallbackQuery, state: FSMContext):
-    await cb.message.answer("🔢 Введите цифры штрихкода:")
+    await cb.message.answer("🔢 Введи цифры штрихкода:")
     await state.set_state(FoodForm.food_barcode)
 
 @dp.message(StateFilter(FoodForm.food_barcode))
@@ -574,7 +574,7 @@ async def nutrition_barcode_process(msg: Message, state: FSMContext):
 
 @dp.callback_query(F.data == "food_by_photo")
 async def nutrition_photo_prompt(cb: CallbackQuery, state: FSMContext):
-    await cb.message.answer("📷 Пришлите четкое фото штрихкода:")
+    await cb.message.answer("📷 Пришли четкое фото штрихкода:")
     await state.set_state(FoodForm.food_photo)
 
 @dp.message(StateFilter(FoodForm.food_photo), F.content_type == ContentType.PHOTO)
@@ -590,11 +590,9 @@ async def nutrition_photo_process(msg: Message, state: FSMContext):
     try:
         # Открываем через Pillow
         img = Image.open(temp_path)
-        # Декодируем через pyzbar
         decoded_objects = decode_barcode(img)
         
         if decoded_objects:
-            # Берем первый найденный код
             code = decoded_objects[0].data.decode("utf-8")
             logging.info(f"Barcode found: {code}")
         else:
@@ -607,7 +605,7 @@ async def nutrition_photo_process(msg: Message, state: FSMContext):
             os.remove(temp_path)
 
     if not code:
-        await msg.answer("❌ Штрихкод не распознан. Попробуйте сфотографировать ближе или введите вручную.")
+        await msg.answer("❌ Штрихкод не распознан. Попробуй сфотографировать ближе или введи вручную.")
         return
 
     # Передаем найденный код в общую функцию
@@ -709,17 +707,17 @@ async def generate_stats_chart(cb: CallbackQuery):
     
     fig, axs = plt.subplots(3, 1, figsize=(8, 10), sharex=True)
     
-    axs[0].bar(df["Date"], df["Activity"], color='#FFF2D2', edgecolor='black', linewidth=1)
+    axs[0].bar(df["Date"], df["Activity"], color='#FFC872')
     axs[0].set_ylabel("Ккал сожжено")
     axs[0].set_title("Активность")
     axs[0].grid(axis='y', alpha=0.3)
     
-    axs[1].bar(df["Date"], df["Food"], color='#DD5547')
+    axs[1].bar(df["Date"], df["Food"], color='#701D1C')
     axs[1].set_ylabel("Ккал съедено")
     axs[1].set_title("Питание")
     axs[1].grid(axis='y', alpha=0.3)
     
-    axs[2].bar(df["Date"], df["Water"], color='#618C82')
+    axs[2].bar(df["Date"], df["Water"], color='#5D83A6')
     axs[2].set_ylabel("Мл выпито")
     axs[2].set_title("Вода")
     axs[2].grid(axis='y', alpha=0.3)
@@ -734,7 +732,7 @@ async def generate_stats_chart(cb: CallbackQuery):
     
     await cb.message.answer_photo(
         photo=BufferedInputFile(buf.read(), filename="stats.png"),
-        caption="📊 <b>Ваша статистика за 7 дней</b>",
+        caption="📊 <b>Твоя статистика за 7 дней</b>",
         parse_mode="HTML"
     )
 @dp.callback_query(F.data == "menu_profile")
@@ -747,7 +745,7 @@ async def profile_main_hub(cb: CallbackQuery):
     current_goal = goal_map.get(u_data.get("goal"), "Не установлена")
     
     text = (
-        f"👤 <b>Ваш личный профиль</b>\n"
+        f"👤 <b>Твой личный профиль</b>\n"
         f"━━━━━━━━━━━━━━━━━━\n"
         f"🎯 Цель: <b>{current_goal}</b>\n"
         f"⚖️ Вес: <b>{u_data.get('weight', '—')} кг</b>\n"
@@ -755,20 +753,20 @@ async def profile_main_hub(cb: CallbackQuery):
         f"🎂 Возраст: <b>{u_data.get('age', '—')}</b>\n"
         f"🌍 Город: <b>{u_data.get('city', '—')}</b>\n"
         f"━━━━━━━━━━━━━━━━━━\n"
-        f"Выберите действие:"
+        f"Выбери действие:"
     )
     
     try:
         await cb.message.edit_text(text, reply_markup=profile_settings_kb(), parse_mode="HTML")
     except Exception as e:
         if "message is not modified" in str(e):
-            await cb.answer() # Просто закрываем анимацию загрузки на кнопке
+            await cb.answer()
         else:
             logging.error(f"Ошибка профиля: {e}")
 
 @dp.callback_query(F.data == "setup_goal")
 async def goal_selection_menu(cb: CallbackQuery):
-    await cb.message.edit_text("🎯 <b>Выберите вашу цель:</b>\n\n"
+    await cb.message.edit_text("🎯 <b>Выбери свою цель:</b>\n\n"
                                "📉 Сброс: ккал * 0.85\n"
                                "📈 Набор: ккал * 1.15", 
                                reply_markup=goal_selection_kb(), parse_mode="HTML")
@@ -787,7 +785,6 @@ async def get_fitness_advice(cb: CallbackQuery):
     uid = str(cb.from_user.id)
     m = await derive_daily_metrics(uid)
     
-    # Логика советов (макс +1 балл за креативность)
     if m['water_current'] < m['water_target'] * 0.5:
         advice = "💧 Вы пьете слишком мало воды! Выпейте стакан прямо сейчас, это ускоряет метаболизм."
     elif m['cal_burned'] < 100:
