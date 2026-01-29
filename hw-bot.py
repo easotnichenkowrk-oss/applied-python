@@ -613,24 +613,19 @@ async def nutrition_photo_process(msg: Message, state: FSMContext):
     await process_barcode_logic(msg, code, state)
 
 async def process_barcode_logic(msg, code, state):
-    api = FoodAPI()
-    data = api.get_by_barcode(code)
-    p_name = data.get("food", {}).get("name", "Unknown")
-    
-    if p_name == "TimeoutError":
-        await msg.answer("⏳ Сервер базы данных продуктов отвечает слишком долго. Попробуйте еще раз через минуту или введите название продукта текстом через 'Поиск названия'.")
-        await state.clear()
-        return
-
-    if p_name == "Unknown":
-        await msg.answer(f"❌ Продукт с кодом {code} не найден в базе данных.")
-        await state.clear()
-        return
-        
-    f_data = data["food"]
-    await state.update_data(fname=p_name, kcal=f_data.get('calories', 0))
-    await msg.answer(f"📦 <b>{p_name}</b>\n⚖ Вес съеденного (г):", parse_mode="HTML")
-    await state.set_state(FoodForm.food_weight)
+    api = FoodAPI()
+    data = api.get_by_barcode(code)
+    p_name = data.get("food", {}).get("name", "Unknown")
+    
+    if p_name == "Unknown":
+        await msg.answer(f"❌ Продукт с кодом {code} не найден.")
+        await state.clear()
+        return
+        
+    f_data = data["food"]
+    await state.update_data(fname=p_name, kcal=f_data.get('calories', 0))
+    await msg.answer(f"📦 <b>{p_name}</b>\n⚖ Вес (г):", parse_mode="HTML")
+    await state.set_state(FoodForm.food_weight)
 
 @dp.message(StateFilter(FoodForm.food_weight))
 async def nutrition_log_entry(msg: Message, state: FSMContext):
@@ -832,6 +827,7 @@ async def get_fitness_advice(cb: CallbackQuery):
 
     await cb.message.answer(f"💡 <b>Совет для тебя:</b>\n\n{advice}", parse_mode="HTML")
     await cb.answer()
+бот перестал определять продукты по фото которые раньше узнавал. ❌ Продукт с кодом 5000159425216 не найден. что делать
 
 async def main():
     logging.info("🤖 Bot starting...")
