@@ -353,11 +353,11 @@ async def profile_setup_start(cb: CallbackQuery):
 @dp.callback_query(F.data == "back_to_menu")
 async def navigate_main(cb: CallbackQuery, state: FSMContext):
     await state.clear()
-    await cb.message.edit_text("🏠 Главное меню:\n Для возвращения в это меню ты всегда можешь использовать команду \\main_menu", reply_markup=main_menu())
+    await cb.message.edit_text("🏠 Главное меню:\n Для возвращения в это меню ты всегда можешь использовать команду /main_menu", reply_markup=main_menu())
 
 @dp.message(Command(commands=["main_menu"]))
 async def cmd_main_menu(message: Message):
-    await message.answer("🏠 Главное меню:\n Для возвращения в это меню ты всегда можешь использовать команду \\main_menu", reply_markup=main_menu())
+    await message.answer("🏠 Главное меню:\n Для возвращения в это меню ты всегда можешь использовать команду /main_menu", reply_markup=main_menu())
 
 @dp.callback_query(F.data.startswith("edit_"))
 async def profile_edit_trigger(cb: CallbackQuery, state: FSMContext):
