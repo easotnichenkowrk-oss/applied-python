@@ -11,8 +11,7 @@ import requests
 from PIL import Image
 from pyzbar.pyzbar import decode as decode_barcode
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import (
-    Message, CallbackQuery, ContentType, BufferedInputFile, 
+from aiogram.types import (Message, CallbackQuery, ContentType, BufferedInputFile, 
     ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton)
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
