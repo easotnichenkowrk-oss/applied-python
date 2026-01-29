@@ -1,8 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# =======================
-# START KB
-# =======================
 def start_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -10,9 +7,7 @@ def start_kb():
         ]
     )
 
-# =======================
-# PROFILE KB
-# =======================
+
 def profile_kb(filled: dict):
     # Гендер: отображаем иконку или текст
     gender_text = "—"
@@ -68,9 +63,6 @@ def gender_kb():
         ]
     )
 
-# =======================
-# MAIN MENU
-# =======================
 def main_menu():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -83,9 +75,6 @@ def main_menu():
         ]
     )
 
-# =======================
-# WORKOUT KB
-# =======================
 def workout_menu():
     # Начальное меню тренировок теперь просто предлагает добавить новую
     return InlineKeyboardMarkup(
@@ -109,9 +98,6 @@ def workout_select_kb(options):
     buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data="back_to_menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# =======================
-# WATER & FOOD & GOAL
-# =======================
 def water_menu_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
