@@ -6,4 +6,3 @@ Pillow
 pyzbar
 fastapi
 uvicorn
-random
