@@ -149,20 +149,22 @@ def workout_select_kb(candidates):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 class FoodAPI:
+    def __init__(self):
+        # Используем более реалистичный User-Agent, чтобы избежать блокировок
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
     def search_food(self, query):
-        # OpenFoodFacts требует корректный User-Agent
-        headers = {'User-Agent': 'FitnessCoachBot/1.0'}
-        # Добавляем фильтр по полям, чтобы ускорить ответ
         url = f"https://world.openfoodfacts.org/cgi/search.pl?search_terms={query}&search_simple=1&action=process&json=1&fields=product_name,nutriments"
         try:
-            resp = requests.get(url, headers=headers, timeout=15).json()
+            resp = requests.get(url, headers=self.headers, timeout=10).json()
             products = resp.get('products', [])
-            
             if products:
                 for p in products:
                     nutr = p.get('nutriments', {})
+                    # Ищем калории в разных полях (иногда они в разных местах)
                     kcal = nutr.get('energy-kcal_100g') or nutr.get('energy-kcal_value') or nutr.get('energy-kcal')
-                    
                     if kcal:
                         return {
                             "foods": {
@@ -176,6 +178,28 @@ class FoodAPI:
         except Exception as e:
             logging.error(f"Search API Error: {e}")
         return {}
+
+    def get_by_barcode(self, code):
+        # Прямой URL к API продукта
+        url = f"https://world.openfoodfacts.org/api/v0/product/{code}.json"
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            if response.status_code == 200:
+                resp = response.json()
+                if resp.get('status') == 1:
+                    p = resp['product']
+                    nutriments = p.get('nutriments', {})
+                    kcal = nutriments.get('energy-kcal_100g') or nutriments.get('energy-kcal_value') or nutriments.get('energy-kcal') or 0
+                    return {
+                        "food": {
+                            "name": p.get('product_name', 'Unknown'), 
+                            "calories": float(kcal), 
+                            "serving_weight": 100
+                        }
+                    }
+        except Exception as e:
+            logging.error(f"Barcode API Error: {e}")
+        return {"food": {"name": "Unknown"}}
 
     def get_by_barcode(self, code):
         headers = {'User-Agent': 'MyFitnessBot/1.0'}
