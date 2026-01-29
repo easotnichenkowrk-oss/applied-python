@@ -827,7 +827,6 @@ async def get_fitness_advice(cb: CallbackQuery):
 
     await cb.message.answer(f"💡 <b>Совет для тебя:</b>\n\n{advice}", parse_mode="HTML")
     await cb.answer()
-бот перестал определять продукты по фото которые раньше узнавал. ❌ Продукт с кодом 5000159425216 не найден. что делать
 
 async def main():
     logging.info("🤖 Bot starting...")
