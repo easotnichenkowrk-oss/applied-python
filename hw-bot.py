@@ -20,7 +20,6 @@ from aiogram.filters import StateFilter, CommandStart
 import asyncio
 import threading
 from keepalive import run_web
-from bot import main
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 if not BOT_TOKEN:
