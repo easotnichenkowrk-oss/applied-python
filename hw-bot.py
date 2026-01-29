@@ -776,9 +776,19 @@ async def goal_selection_menu(cb: CallbackQuery):
 async def set_user_goal(cb: CallbackQuery):
     goal = cb.data.replace("set_goal_", "")
     uid = str(cb.from_user.id)
-    user_db.setdefault(uid, {})["goal"] = goal
+    
+    if uid not in user_db:
+        user_db[uid] = {
+            "weight": 70, "height": 170, "age": 25, 
+            "gender": "Male", "city": "Moscow", 
+            "workouts": [], "water_log": [], "food_log": []
+        }
+    
+    user_db[uid]["goal"] = goal
     persist_user_data()
-    await cb.answer("Цель обновлена!")
+    
+    await cb.answer("🎯 Цель обновлена!")
+    # Возвращаемся в меню профиля, чтобы увидеть обновленные данные
     await profile_main_hub(cb)
 
 @dp.callback_query(F.data == "get_advice")
