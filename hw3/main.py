@@ -32,8 +32,11 @@ class CleanupRequest(BaseModel):
 @app.on_event('startup')
 async def startup():
     global db_pool, redis_client
-    db_pool = await asyncpg.create_pool(dsn = 'postgresql://app_user:app_pass@db:5432/shortener')
-    redis_client = await aioredis.from_url('redis://redis:6379', decode_responses = True)
+    DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://app_user:app_pass@db:5432/shortener')
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+    
+    db_pool = await asyncpg.create_pool(dsn=DATABASE_URL)
+    redis_client = await aioredis.from_url(REDIS_URL, decode_responses=True)
 
 
 
