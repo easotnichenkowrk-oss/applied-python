@@ -42,7 +42,7 @@ async def startup():
 
 
 @app.on_event('shutdown')
-async def shutdown():
+async def shutdown(): # pragma: no cover
     await db_pool.close()
     await redis_client.close()
 

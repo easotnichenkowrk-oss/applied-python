@@ -2,4 +2,11 @@ fastapi
 uvicorn
 asyncpg
 redis
+
 pydantic
+pytest
+pytest-asyncio
+pytest-mock
+httpx
+pytest-cov
+locust
